@@ -5,39 +5,32 @@ const QAAnalysisForm = () => {
   const [releaseVersion, setReleaseVersion] = useState('');
   const [analysisResult, setAnalysisResult] = useState(null);
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState(null);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     setLoading(true);
+    setError(null);
 
-    // Simulating API call - replace with actual API integration
     try {
-      // Mock response - replace with actual API response
-      const mockResponse = {
-        affectedAreas: [
-          'User Authentication Module',
-          'Payment Processing System',
-          'Order Management Interface'
-        ],
-        testCases: [
-          'Verify user login flow with new authentication changes',
-          'Test payment gateway integration with updated API',
-          'Validate order status updates in the admin panel'
-        ],
-        additionalActions: [
-          'Update test environment with latest configuration',
-          'Coordinate with DevOps for deployment verification',
-          'Review API documentation for changed endpoints'
-        ]
-      };
+      const response = await fetch('http://localhost:3002/api/qa/analyze', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ releaseVersion }),
+      });
 
-      setTimeout(() => {
-        setAnalysisResult(mockResponse);
-        setLoading(false);
-      }, 1500);
+      if (!response.ok) {
+        throw new Error('Failed to fetch analysis');
+      }
 
+      const data = await response.json();
+      setAnalysisResult(data);
     } catch (error) {
       console.error('Error fetching analysis:', error);
+      setError('Failed to analyze release. Please try again.');
+    } finally {
       setLoading(false);
     }
   };
@@ -64,6 +57,7 @@ const QAAnalysisForm = () => {
       </form>
 
       {loading && <div className="loading">Analyzing release impact...</div>}
+      {error && <div className="error-message">{error}</div>}
 
       {analysisResult && (
         <div className="analysis-results">
@@ -73,7 +67,13 @@ const QAAnalysisForm = () => {
             <h3>Affected Areas:</h3>
             <ul>
               {analysisResult.affectedAreas.map((area, index) => (
-                <li key={index}>{area}</li>
+                <li key={index} className={`impact-${area.impactLevel.toLowerCase()}`}>
+                  <span className="area-name">{area.name}</span>
+                  <div className="area-details">
+                    <span className="confidence">Confidence: {(area.confidence * 100).toFixed(1)}%</span>
+                    <span className="impact-level">Impact: {area.impactLevel}</span>
+                  </div>
+                </li>
               ))}
             </ul>
           </section>
@@ -82,7 +82,13 @@ const QAAnalysisForm = () => {
             <h3>Recommended Test Cases:</h3>
             <ul>
               {analysisResult.testCases.map((testCase, index) => (
-                <li key={index}>{testCase}</li>
+                <li key={index} className={`priority-${testCase.priority.toLowerCase()}`}>
+                  <div className="test-case-header">
+                    <span className="test-id">{testCase.id}</span>
+                    <span className="test-area">{testCase.area}</span>
+                  </div>
+                  <p className="test-name">{testCase.name}</p>
+                </li>
               ))}
             </ul>
           </section>
@@ -91,7 +97,13 @@ const QAAnalysisForm = () => {
             <h3>Additional Actions Required:</h3>
             <ul>
               {analysisResult.additionalActions.map((action, index) => (
-                <li key={index}>{action}</li>
+                <li key={index} className={`priority-${action.priority.toLowerCase()}`}>
+                  <p className="action-text">{action.action}</p>
+                  <div className="action-details">
+                    <span className="priority">Priority: {action.priority}</span>
+                    <span className="deadline">Deadline: {action.deadline}</span>
+                  </div>
+                </li>
               ))}
             </ul>
           </section>
