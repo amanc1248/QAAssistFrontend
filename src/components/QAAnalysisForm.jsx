@@ -1,4 +1,5 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import axios from 'axios';
 import './QAAnalysisForm.css';
 
 const QAAnalysisForm = () => {
@@ -6,6 +7,22 @@ const QAAnalysisForm = () => {
   const [analysisResult, setAnalysisResult] = useState(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
+  const [releases, setReleases] = useState([]);
+
+  // Fetch releases on component mount
+  useEffect(() => {
+    const fetchReleases = async () => {
+      try {
+        const response = await axios.get('http://localhost:5002/api/jira/get-releases');
+        setReleases(response.data);
+      } catch (error) {
+        console.error('Error fetching releases:', error);
+        setError('Failed to fetch releases. Please try again.');
+      }
+    };
+
+    fetchReleases();
+  }, []);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -13,7 +30,7 @@ const QAAnalysisForm = () => {
     setError(null);
 
     try {
-      const response = await fetch('http://localhost:3002/api/qa/analyze', {
+      const response = await fetch('http://localhost:5002/api/qa/analyze', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -42,14 +59,19 @@ const QAAnalysisForm = () => {
       <form onSubmit={handleSubmit} className="analysis-form">
         <div className="form-group">
           <label htmlFor="releaseVersion">Release Version:</label>
-          <input
-            type="text"
+          <select
             id="releaseVersion"
             value={releaseVersion}
             onChange={(e) => setReleaseVersion(e.target.value)}
-            placeholder="Enter release version (e.g., v2.1.0)"
             required
-          />
+          >
+            <option value="">Select a release</option>
+            {releases.map((release) => (
+              <option key={release.id} value={release.id}>
+                {release.name}
+              </option>
+            ))}
+          </select>
         </div>
         <button type="submit" disabled={loading}>
           {loading ? 'Analyzing...' : 'Analyze Release'}
@@ -62,8 +84,9 @@ const QAAnalysisForm = () => {
       {analysisResult && (
         <div className="analysis-results">
           <h2>Analysis Results</h2>
+          {analysisResult}
           
-          <section>
+          {/* <section>
             <h3>Affected Areas:</h3>
             <ul>
               {analysisResult.affectedAreas.map((area, index) => (
@@ -106,11 +129,11 @@ const QAAnalysisForm = () => {
                 </li>
               ))}
             </ul>
-          </section>
+          </section> */}
         </div>
       )}
     </div>
   );
 };
 
-export default QAAnalysisForm; 
+export default QAAnalysisForm;
